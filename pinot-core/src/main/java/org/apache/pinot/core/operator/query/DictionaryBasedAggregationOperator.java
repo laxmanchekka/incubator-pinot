@@ -18,7 +18,13 @@
  */
 package org.apache.pinot.core.operator.query;
 
+import com.google.common.base.Charsets;
+import it.unimi.dsi.fastutil.doubles.DoubleOpenHashSet;
+import it.unimi.dsi.fastutil.floats.FloatOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -77,36 +83,42 @@ public class DictionaryBasedAggregationOperator extends BaseOperator<Intermediat
               .add(new MinMaxRangePair(dictionary.getDoubleValue(0), dictionary.getDoubleValue(dictionarySize - 1)));
           break;
         case DISTINCTCOUNT:
-          IntOpenHashSet set = new IntOpenHashSet(dictionarySize);
+          AbstractCollection set;
           switch (dictionary.getValueType()) {
             case INT:
+              set = new IntOpenHashSet(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
                 set.add(dictionary.getIntValue(dictId));
               }
               break;
             case LONG:
+              set = new LongOpenHashSet(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(Long.hashCode(dictionary.getLongValue(dictId)));
+                set.add(dictionary.getLongValue(dictId));
               }
               break;
             case FLOAT:
+              set = new FloatOpenHashSet(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(Float.hashCode(dictionary.getFloatValue(dictId)));
+                set.add(dictionary.getFloatValue(dictId));
               }
               break;
             case DOUBLE:
+              set = new DoubleOpenHashSet(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(Double.hashCode(dictionary.getDoubleValue(dictId)));
+                set.add(dictionary.getDoubleValue(dictId));
               }
               break;
             case STRING:
+              set = new ObjectOpenHashSet<byte[]>(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(dictionary.getStringValue(dictId).hashCode());
+                set.add(dictionary.getStringValue(dictId).getBytes(Charsets.UTF_8));
               }
               break;
             case BYTES:
+              set = new ObjectOpenHashSet<byte[]>(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(Arrays.hashCode(dictionary.getBytesValue(dictId)));
+                set.add(dictionary.getBytesValue(dictId));
               }
               break;
             default:

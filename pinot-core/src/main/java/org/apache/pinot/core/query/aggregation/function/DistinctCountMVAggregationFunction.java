@@ -19,6 +19,7 @@
 package org.apache.pinot.core.query.aggregation.function;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import java.util.AbstractCollection;
 import java.util.Map;
 import org.apache.pinot.common.function.AggregationFunctionType;
 import org.apache.pinot.core.common.BlockValSet;
@@ -58,8 +59,8 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
     }
 
     // For non-dictionary-encoded expression, store hash code of the values into the value set
-    IntOpenHashSet valueSet = getValueSet(aggregationResultHolder);
     FieldSpec.DataType valueType = blockValSet.getValueType();
+    AbstractCollection valueSet = getValueSet(aggregationResultHolder, valueType);
     switch (valueType) {
       case INT:
         int[][] intValues = blockValSet.getIntValuesMV();
@@ -126,7 +127,7 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
       case INT:
         int[][] intValues = blockValSet.getIntValuesMV();
         for (int i = 0; i < length; i++) {
-          IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKeyArray[i]);
+          AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKeyArray[i], valueType);
           for (int value : intValues[i]) {
             valueSet.add(value);
           }
@@ -135,36 +136,36 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
       case LONG:
         long[][] longValues = blockValSet.getLongValuesMV();
         for (int i = 0; i < length; i++) {
-          IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKeyArray[i]);
+          AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKeyArray[i], valueType);
           for (long value : longValues[i]) {
-            valueSet.add(Long.hashCode(value));
+            valueSet.add(value);
           }
         }
         break;
       case FLOAT:
         float[][] floatValues = blockValSet.getFloatValuesMV();
         for (int i = 0; i < length; i++) {
-          IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKeyArray[i]);
+          AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKeyArray[i], valueType);
           for (float value : floatValues[i]) {
-            valueSet.add(Float.hashCode(value));
+            valueSet.add(value);
           }
         }
         break;
       case DOUBLE:
         double[][] doubleValues = blockValSet.getDoubleValuesMV();
         for (int i = 0; i < length; i++) {
-          IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKeyArray[i]);
+          AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKeyArray[i], valueType);
           for (double value : doubleValues[i]) {
-            valueSet.add(Double.hashCode(value));
+            valueSet.add(value);
           }
         }
         break;
       case STRING:
         String[][] stringValues = blockValSet.getStringValuesMV();
         for (int i = 0; i < length; i++) {
-          IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKeyArray[i]);
+          AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKeyArray[i], valueType);
           for (String value : stringValues[i]) {
-            valueSet.add(value.hashCode());
+            valueSet.add(value);
           }
         }
         break;
@@ -197,7 +198,7 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
         int[][] intValues = blockValSet.getIntValuesMV();
         for (int i = 0; i < length; i++) {
           for (int groupKey : groupKeysArray[i]) {
-            IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKey);
+            AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKey, valueType);
             for (int value : intValues[i]) {
               valueSet.add(value);
             }
@@ -208,7 +209,7 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
         long[][] longValues = blockValSet.getLongValuesMV();
         for (int i = 0; i < length; i++) {
           for (int groupKey : groupKeysArray[i]) {
-            IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKey);
+            AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKey, valueType);
             for (long value : longValues[i]) {
               valueSet.add(Long.hashCode(value));
             }
@@ -219,7 +220,7 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
         float[][] floatValues = blockValSet.getFloatValuesMV();
         for (int i = 0; i < length; i++) {
           for (int groupKey : groupKeysArray[i]) {
-            IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKey);
+            AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKey, valueType);
             for (float value : floatValues[i]) {
               valueSet.add(Float.hashCode(value));
             }
@@ -230,7 +231,7 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
         double[][] doubleValues = blockValSet.getDoubleValuesMV();
         for (int i = 0; i < length; i++) {
           for (int groupKey : groupKeysArray[i]) {
-            IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKey);
+            AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKey, valueType);
             for (double value : doubleValues[i]) {
               valueSet.add(Double.hashCode(value));
             }
@@ -241,7 +242,7 @@ public class DistinctCountMVAggregationFunction extends DistinctCountAggregation
         String[][] stringValues = blockValSet.getStringValuesMV();
         for (int i = 0; i < length; i++) {
           for (int groupKey : groupKeysArray[i]) {
-            IntOpenHashSet valueSet = getValueSet(groupByResultHolder, groupKey);
+            AbstractCollection valueSet = getValueSet(groupByResultHolder, groupKey, valueType);
             for (String value : stringValues[i]) {
               valueSet.add(value.hashCode());
             }

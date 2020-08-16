@@ -19,17 +19,31 @@
 package org.apache.pinot.core.common;
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLog;
+import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 import com.tdunning.math.stats.MergingDigest;
 import com.tdunning.math.stats.TDigest;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleIterator;
+import it.unimi.dsi.fastutil.doubles.DoubleOpenHashSet;
+import it.unimi.dsi.fastutil.doubles.DoubleSet;
+import it.unimi.dsi.fastutil.floats.FloatIterator;
+import it.unimi.dsi.fastutil.floats.FloatOpenHashSet;
+import it.unimi.dsi.fastutil.floats.FloatSet;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -68,7 +82,11 @@ public class ObjectSerDeUtils {
     DistinctTable(11),
     DataSketch(12),
     Geometry(13),
-    RoaringBitmap(14);
+    RoaringBitmap(14),
+    LongSet(15),
+    FloatSet(16),
+    DoubleSet(17),
+    BytesSet(18);
 
     private final int _value;
 
@@ -111,6 +129,14 @@ public class ObjectSerDeUtils {
         return ObjectType.Geometry;
       } else if (value instanceof RoaringBitmap) {
         return ObjectType.RoaringBitmap;
+      } else if (value instanceof LongSet) {
+        return ObjectType.LongSet;
+      } else if (value instanceof it.unimi.dsi.fastutil.floats.FloatSet) {
+        return ObjectType.FloatSet;
+      } else if (value instanceof it.unimi.dsi.fastutil.doubles.DoubleSet) {
+        return ObjectType.DoubleSet;
+      } else if (value instanceof ObjectSet) {
+        return ObjectType.BytesSet;
       } else {
         throw new IllegalArgumentException("Unsupported type of value: " + value.getClass().getSimpleName());
       }
@@ -452,6 +478,135 @@ public class ObjectSerDeUtils {
     }
   };
 
+  public static final ObjectSerDe<LongSet> LONG_SET_SER_DE = new ObjectSerDe<LongSet>() {
+
+    @Override
+    public byte[] serialize(LongSet longSet) {
+      int size = longSet.size();
+      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
+      ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+      byteBuffer.putInt(size);
+      LongIterator iterator = longSet.iterator();
+      while (iterator.hasNext()) {
+        byteBuffer.putLong(iterator.nextLong());
+      }
+      return bytes;
+    }
+
+    @Override
+    public LongSet deserialize(byte[] bytes) {
+      return deserialize(ByteBuffer.wrap(bytes));
+    }
+
+    @Override
+    public LongSet deserialize(ByteBuffer byteBuffer) {
+      int size = byteBuffer.getInt();
+      LongSet longSet = new LongOpenHashSet(size);
+      for (int i = 0; i < size; i++) {
+        longSet.add(byteBuffer.getLong());
+      }
+      return longSet;
+    }
+  };
+
+  public static final ObjectSerDe<FloatSet> FLOAT_SET_SER_DE = new ObjectSerDe<FloatSet>() {
+
+    @Override
+    public byte[] serialize(FloatSet floatSet) {
+      int size = floatSet.size();
+      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
+      ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+      byteBuffer.putInt(size);
+      FloatIterator iterator = floatSet.iterator();
+      while (iterator.hasNext()) {
+        byteBuffer.putFloat(iterator.nextFloat());
+      }
+      return bytes;
+    }
+
+    @Override
+    public FloatSet deserialize(byte[] bytes) {
+      return deserialize(ByteBuffer.wrap(bytes));
+    }
+
+    @Override
+    public FloatSet deserialize(ByteBuffer byteBuffer) {
+      int size = byteBuffer.getInt();
+      FloatSet floatSet = new FloatOpenHashSet(size);
+      for (int i = 0; i < size; i++) {
+        floatSet.add(byteBuffer.getLong());
+      }
+      return floatSet;
+    }
+  };
+
+  public static final ObjectSerDe<DoubleSet> DOUBLE_SET_SER_DE = new ObjectSerDe<DoubleSet>() {
+
+    @Override
+    public byte[] serialize(DoubleSet doubleSet) {
+      int size = doubleSet.size();
+      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
+      ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+      byteBuffer.putInt(size);
+      DoubleIterator iterator = doubleSet.iterator();
+      while (iterator.hasNext()) {
+        byteBuffer.putDouble(iterator.nextDouble());
+      }
+      return bytes;
+    }
+
+    @Override
+    public DoubleSet deserialize(byte[] bytes) {
+      return deserialize(ByteBuffer.wrap(bytes));
+    }
+
+    @Override
+    public DoubleSet deserialize(ByteBuffer byteBuffer) {
+      int size = byteBuffer.getInt();
+      DoubleSet doubleSet = new DoubleOpenHashSet(size);
+      for (int i = 0; i < size; i++) {
+        doubleSet.add(byteBuffer.getDouble());
+      }
+      return doubleSet;
+    }
+  };
+
+  public static final ObjectSerDe<ObjectSet<byte[]>> BYTES_SET_SER_DE = new ObjectSerDe<ObjectSet<byte[]>>() {
+
+    @Override
+    public byte[] serialize(ObjectSet bytesSet) {
+      int size = bytesSet.size();
+      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
+      ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+      byteBuffer.putInt(size);
+      ObjectIterator<byte[]> iterator = bytesSet.iterator();
+      while (iterator.hasNext()) {
+        byte[] val = iterator.next();
+        byteBuffer.putInt(val.length);
+        byteBuffer.put(val);
+      }
+      return bytes;
+    }
+
+    @Override
+    public ObjectSet<byte[]> deserialize(byte[] bytes) {
+      return deserialize(ByteBuffer.wrap(bytes));
+    }
+
+    @Override
+    public ObjectSet<byte[]> deserialize(ByteBuffer byteBuffer) {
+      int size = byteBuffer.getInt();
+      ObjectOpenHashSet<byte[]> bytesSet = new ObjectOpenHashSet<>(size);
+      for (int i = 0; i < size; i++) {
+        int length = byteBuffer.getInt();
+        byte[] val = new byte[length];
+        byteBuffer.get(val);
+        bytesSet.add(val);
+      }
+      return bytesSet;
+    }
+  };
+
   public static final ObjectSerDe<TDigest> TDIGEST_SER_DE = new ObjectSerDe<TDigest>() {
 
     @Override
@@ -538,23 +693,8 @@ public class ObjectSerDeUtils {
 
   // NOTE: DO NOT change the order, it has to be the same order as the ObjectType
   //@formatter:off
-  private static final ObjectSerDe[] SER_DES = {
-      STRING_SER_DE,
-      LONG_SER_DE,
-      DOUBLE_SER_DE,
-      DOUBLE_ARRAY_LIST_SER_DE,
-      AVG_PAIR_SER_DE,
-      MIN_MAX_RANGE_PAIR_SER_DE,
-      HYPER_LOG_LOG_SER_DE,
-      QUANTILE_DIGEST_SER_DE,
-      MAP_SER_DE,
-      INT_SET_SER_DE,
-      TDIGEST_SER_DE,
-      DISTINCT_TABLE_SER_DE,
-      DATA_SKETCH_SER_DE,
-      GEOMETRY_SER_DE,
-      ROARING_BITMAP_SER_DE
-  };
+  private static final ObjectSerDe[] SER_DES =
+      {STRING_SER_DE, LONG_SER_DE, DOUBLE_SER_DE, DOUBLE_ARRAY_LIST_SER_DE, AVG_PAIR_SER_DE, MIN_MAX_RANGE_PAIR_SER_DE, HYPER_LOG_LOG_SER_DE, QUANTILE_DIGEST_SER_DE, MAP_SER_DE, INT_SET_SER_DE, TDIGEST_SER_DE, DISTINCT_TABLE_SER_DE, DATA_SKETCH_SER_DE, GEOMETRY_SER_DE, ROARING_BITMAP_SER_DE, LONG_SET_SER_DE, FLOAT_SET_SER_DE, DOUBLE_SET_SER_DE, BYTES_SET_SER_DE};
   //@formatter:on
 
   public static byte[] serialize(Object value) {

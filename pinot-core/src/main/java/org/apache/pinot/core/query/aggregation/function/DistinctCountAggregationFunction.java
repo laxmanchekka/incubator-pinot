@@ -18,8 +18,14 @@
  */
 package org.apache.pinot.core.query.aggregation.function;
 
+import com.google.common.base.Charsets;
+import it.unimi.dsi.fastutil.doubles.DoubleOpenHashSet;
+import it.unimi.dsi.fastutil.floats.FloatOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import java.util.Arrays;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import java.util.AbstractCollection;
+import java.util.Iterator;
 import java.util.Map;
 import org.apache.pinot.common.function.AggregationFunctionType;
 import org.apache.pinot.common.utils.DataSchema.ColumnDataType;
@@ -35,7 +41,7 @@ import org.roaringbitmap.PeekableIntIterator;
 import org.roaringbitmap.RoaringBitmap;
 
 
-public class DistinctCountAggregationFunction extends BaseSingleInputAggregationFunction<IntOpenHashSet, Integer> {
+public class DistinctCountAggregationFunction extends BaseSingleInputAggregationFunction<AbstractCollection, Integer> {
 
   public DistinctCountAggregationFunction(ExpressionContext expression) {
     super(expression);
@@ -69,9 +75,10 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       return;
     }
 
-    // For non-dictionary-encoded expression, store hash code of the values into the value set
-    IntOpenHashSet valueSet = getValueSet(aggregationResultHolder);
+    // For non-dictionary-encoded expression
     DataType valueType = blockValSet.getValueType();
+
+    AbstractCollection valueSet = getValueSet(aggregationResultHolder, valueType);
     switch (valueType) {
       case INT:
         int[] intValues = blockValSet.getIntValuesSV();
@@ -82,31 +89,31 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case LONG:
         long[] longValues = blockValSet.getLongValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(Long.hashCode(longValues[i]));
+          valueSet.add(longValues[i]);
         }
         break;
       case FLOAT:
         float[] floatValues = blockValSet.getFloatValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(Float.hashCode(floatValues[i]));
+          valueSet.add(floatValues[i]);
         }
         break;
       case DOUBLE:
         double[] doubleValues = blockValSet.getDoubleValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(Double.hashCode(doubleValues[i]));
+          valueSet.add(doubleValues[i]);
         }
         break;
       case STRING:
         String[] stringValues = blockValSet.getStringValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(stringValues[i].hashCode());
+          valueSet.add(stringValues[i].getBytes(Charsets.UTF_8));
         }
         break;
       case BYTES:
         byte[][] bytesValues = blockValSet.getBytesValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(Arrays.hashCode(bytesValues[i]));
+          valueSet.add(bytesValues[i]);
         }
         break;
       default:
@@ -135,37 +142,37 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case INT:
         int[] intValues = blockValSet.getIntValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i]).add(intValues[i]);
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(intValues[i]);
         }
         break;
       case LONG:
         long[] longValues = blockValSet.getLongValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i]).add(Long.hashCode(longValues[i]));
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(longValues[i]);
         }
         break;
       case FLOAT:
         float[] floatValues = blockValSet.getFloatValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i]).add(Float.hashCode(floatValues[i]));
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(floatValues[i]);
         }
         break;
       case DOUBLE:
         double[] doubleValues = blockValSet.getDoubleValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i]).add(Double.hashCode(doubleValues[i]));
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(doubleValues[i]);
         }
         break;
       case STRING:
         String[] stringValues = blockValSet.getStringValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i]).add(stringValues[i].hashCode());
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(stringValues[i].getBytes(Charsets.UTF_8));
         }
         break;
       case BYTES:
         byte[][] bytesValues = blockValSet.getBytesValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i]).add(Arrays.hashCode(bytesValues[i]));
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(bytesValues[i]);
         }
         break;
       default:
@@ -194,37 +201,37 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case INT:
         int[] intValues = blockValSet.getIntValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, groupKeysArray[i], intValues[i]);
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], intValues[i]);
         }
         break;
       case LONG:
         long[] longValues = blockValSet.getLongValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, groupKeysArray[i], Long.hashCode(longValues[i]));
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], (longValues[i]));
         }
         break;
       case FLOAT:
         float[] floatValues = blockValSet.getFloatValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, groupKeysArray[i], Float.hashCode(floatValues[i]));
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], floatValues[i]);
         }
         break;
       case DOUBLE:
         double[] doubleValues = blockValSet.getDoubleValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, groupKeysArray[i], Double.hashCode(doubleValues[i]));
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], doubleValues[i]);
         }
         break;
       case STRING:
         String[] stringValues = blockValSet.getStringValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, groupKeysArray[i], stringValues[i].hashCode());
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], stringValues[i].getBytes(Charsets.UTF_8));
         }
         break;
       case BYTES:
         byte[][] bytesValues = blockValSet.getBytesValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, groupKeysArray[i], Arrays.hashCode(bytesValues[i]));
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], bytesValues[i]);
         }
         break;
       default:
@@ -233,10 +240,10 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
   }
 
   @Override
-  public IntOpenHashSet extractAggregationResult(AggregationResultHolder aggregationResultHolder) {
+  public AbstractCollection extractAggregationResult(AggregationResultHolder aggregationResultHolder) {
     Object result = aggregationResultHolder.getResult();
     if (result == null) {
-      return new IntOpenHashSet();
+      return emptyCollection();
     }
 
     if (result instanceof DictIdsWrapper) {
@@ -244,15 +251,39 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       return convertToValueSet((DictIdsWrapper) result);
     } else {
       // For non-dictionary-encoded expression, directly return the value set
-      return (IntOpenHashSet) result;
+      return (AbstractCollection) result;
     }
   }
 
+  private AbstractCollection emptyCollection() {
+    return new AbstractCollection() {
+      @Override
+      public Iterator iterator() {
+        return new Iterator() {
+          @Override
+          public boolean hasNext() {
+            return false;
+          }
+
+          @Override
+          public Object next() {
+            return null;
+          }
+        };
+      }
+
+      @Override
+      public int size() {
+        return 0;
+      }
+    };
+  }
+
   @Override
-  public IntOpenHashSet extractGroupByResult(GroupByResultHolder groupByResultHolder, int groupKey) {
+  public AbstractCollection extractGroupByResult(GroupByResultHolder groupByResultHolder, int groupKey) {
     Object result = groupByResultHolder.getResult(groupKey);
     if (result == null) {
-      return new IntOpenHashSet();
+      return emptyCollection();
     }
 
     if (result instanceof DictIdsWrapper) {
@@ -260,14 +291,52 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       return convertToValueSet((DictIdsWrapper) result);
     } else {
       // For non-dictionary-encoded expression, directly return the value set
-      return (IntOpenHashSet) result;
+      return (AbstractCollection) result;
     }
   }
 
   @Override
-  public IntOpenHashSet merge(IntOpenHashSet intermediateResult1, IntOpenHashSet intermediateResult2) {
-    intermediateResult1.addAll(intermediateResult2);
-    return intermediateResult1;
+  public AbstractCollection merge(AbstractCollection intermediateResult1, AbstractCollection intermediateResult2) {
+    if (intermediateResult1.getClass().isAssignableFrom(intermediateResult2.getClass())) {
+      intermediateResult1.addAll(intermediateResult2);
+      return intermediateResult1;
+    } else {
+      //handle backwards compatibility, we used to use IntHashSet for all datatypes earlier
+      //so we try to convert other types into int using hashcode
+      //Note this code path is executed only while brokers and servers are getting upgraded.
+      //When both are on the same version, they will satisfy the intermediateResult1.getClass().isAssignableFrom(intermediateResult2.getClass() condition
+      IntOpenHashSet intOpenHashSet;
+      AbstractCollection toMerge;
+      if (intermediateResult1 instanceof IntOpenHashSet) {
+        intOpenHashSet = (IntOpenHashSet) intermediateResult1;
+        toMerge = intermediateResult2;
+      } else {
+        intOpenHashSet = (IntOpenHashSet) intermediateResult2;
+        toMerge = intermediateResult1;
+      }
+      if (toMerge instanceof LongOpenHashSet) {
+        LongOpenHashSet longOpenHashSet = (LongOpenHashSet) toMerge;
+        for (long e : longOpenHashSet) {
+          intOpenHashSet.add(Long.hashCode(e));
+        }
+      } else if (toMerge instanceof FloatOpenHashSet) {
+        FloatOpenHashSet floatOpenHashSet = (FloatOpenHashSet) toMerge;
+        for (float e : floatOpenHashSet) {
+          intOpenHashSet.add(Float.hashCode(e));
+        }
+      } else if (toMerge instanceof DoubleOpenHashSet) {
+        DoubleOpenHashSet doubleOpenHashSet = (DoubleOpenHashSet) toMerge;
+        for (double e : doubleOpenHashSet) {
+          intOpenHashSet.add(Double.hashCode(e));
+        }
+      } else if (toMerge instanceof ObjectOpenHashSet) {
+        ObjectOpenHashSet objectOpenHashSet = (ObjectOpenHashSet) toMerge;
+        for (Object e : objectOpenHashSet) {
+          intOpenHashSet.add(e.hashCode());
+        }
+      }
+      return intOpenHashSet;
+    }
   }
 
   @Override
@@ -286,7 +355,7 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
   }
 
   @Override
-  public Integer extractFinalResult(IntOpenHashSet intermediateResult) {
+  public Integer extractFinalResult(AbstractCollection intermediateResult) {
     return intermediateResult.size();
   }
 
@@ -306,11 +375,38 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
   /**
    * Returns the value set from the result holder or creates a new one if it does not exist.
    */
-  protected static IntOpenHashSet getValueSet(AggregationResultHolder aggregationResultHolder) {
-    IntOpenHashSet valueSet = aggregationResultHolder.getResult();
+  protected static AbstractCollection getValueSet(AggregationResultHolder aggregationResultHolder, DataType valueType) {
+    AbstractCollection valueSet = aggregationResultHolder.getResult();
     if (valueSet == null) {
-      valueSet = new IntOpenHashSet();
+      valueSet = getAbstractCollection(valueType);
       aggregationResultHolder.setValue(valueSet);
+    }
+    return valueSet;
+  }
+
+  private static AbstractCollection getAbstractCollection(DataType valueType) {
+    AbstractCollection valueSet;
+    switch (valueType) {
+      case INT:
+        valueSet = new IntOpenHashSet();
+        break;
+      case LONG:
+        valueSet = new LongOpenHashSet();
+        break;
+      case FLOAT:
+        valueSet = new FloatOpenHashSet();
+        break;
+      case DOUBLE:
+        valueSet = new DoubleOpenHashSet();
+        break;
+      case STRING:
+        valueSet = new ObjectOpenHashSet<byte[]>();
+        break;
+      case BYTES:
+        valueSet = new ObjectOpenHashSet<byte[]>();
+        break;
+      default:
+        throw new IllegalStateException("Illegal data type for DISTINCT_COUNT aggregation function: " + valueType);
     }
     return valueSet;
   }
@@ -331,10 +427,11 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
   /**
    * Returns the value set for the given group key or creates a new one if it does not exist.
    */
-  protected static IntOpenHashSet getValueSet(GroupByResultHolder groupByResultHolder, int groupKey) {
-    IntOpenHashSet valueSet = groupByResultHolder.getResult(groupKey);
+  protected static AbstractCollection getValueSet(GroupByResultHolder groupByResultHolder, int groupKey,
+      DataType valueType) {
+    AbstractCollection valueSet = groupByResultHolder.getResult(groupKey);
     if (valueSet == null) {
-      valueSet = new IntOpenHashSet();
+      valueSet = getAbstractCollection(valueType);
       groupByResultHolder.setValueForKey(groupKey, valueSet);
     }
     return valueSet;
@@ -353,9 +450,38 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
   /**
    * Helper method to set value for the given group keys into the result holder.
    */
-  private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, int[] groupKeys, int value) {
+  private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, DataType valueType, int[] groupKeys,
+      int value) {
     for (int groupKey : groupKeys) {
-      getValueSet(groupByResultHolder, groupKey).add(value);
+      getValueSet(groupByResultHolder, groupKey, valueType).add(value);
+    }
+  }
+
+  private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, DataType valueType, int[] groupKeys,
+      long value) {
+    for (int groupKey : groupKeys) {
+      getValueSet(groupByResultHolder, groupKey, valueType).add(value);
+    }
+  }
+
+  private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, DataType valueType, int[] groupKeys,
+      float value) {
+    for (int groupKey : groupKeys) {
+      getValueSet(groupByResultHolder, groupKey, valueType).add(value);
+    }
+  }
+
+  private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, DataType valueType, int[] groupKeys,
+      double value) {
+    for (int groupKey : groupKeys) {
+      getValueSet(groupByResultHolder, groupKey, valueType).add(value);
+    }
+  }
+
+  private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, DataType valueType, int[] groupKeys,
+      byte[] value) {
+    for (int groupKey : groupKeys) {
+      getValueSet(groupByResultHolder, groupKey, valueType).add(value);
     }
   }
 
@@ -363,47 +489,56 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
    * Helper method to read dictionary and convert dictionary ids to hash code of the values for dictionary-encoded
    * expression.
    */
-  private static IntOpenHashSet convertToValueSet(DictIdsWrapper dictIdsWrapper) {
+  private static AbstractCollection convertToValueSet(DictIdsWrapper dictIdsWrapper) {
     Dictionary dictionary = dictIdsWrapper._dictionary;
     RoaringBitmap dictIdBitmap = dictIdsWrapper._dictIdBitmap;
-    IntOpenHashSet valueSet = new IntOpenHashSet(dictIdBitmap.getCardinality());
     PeekableIntIterator iterator = dictIdBitmap.getIntIterator();
     DataType valueType = dictionary.getValueType();
     switch (valueType) {
       case INT:
+        IntOpenHashSet intOpenHashSet = new IntOpenHashSet(dictIdBitmap.getCardinality());
         while (iterator.hasNext()) {
-          valueSet.add(dictionary.getIntValue(iterator.next()));
+          intOpenHashSet.add(dictionary.getIntValue(iterator.next()));
         }
-        break;
+        return intOpenHashSet;
       case LONG:
+        LongOpenHashSet longOpenHashSet = new LongOpenHashSet(dictIdBitmap.getCardinality());
         while (iterator.hasNext()) {
-          valueSet.add(Long.hashCode(dictionary.getLongValue(iterator.next())));
+          longOpenHashSet.add(dictionary.getLongValue(iterator.next()));
         }
-        break;
+        return longOpenHashSet;
       case FLOAT:
+        FloatOpenHashSet floatOpenHashSet = new FloatOpenHashSet(dictIdBitmap.getCardinality());
         while (iterator.hasNext()) {
-          valueSet.add(Float.hashCode(dictionary.getFloatValue(iterator.next())));
+          floatOpenHashSet.add(dictionary.getFloatValue(iterator.next()));
         }
-        break;
+        return floatOpenHashSet;
+
       case DOUBLE:
+        DoubleOpenHashSet doubleOpenHashSet = new DoubleOpenHashSet(dictIdBitmap.getCardinality());
         while (iterator.hasNext()) {
-          valueSet.add(Double.hashCode(dictionary.getDoubleValue(iterator.next())));
+          doubleOpenHashSet.add(dictionary.getDoubleValue(iterator.next()));
         }
-        break;
+        return doubleOpenHashSet;
       case STRING:
+        ObjectOpenHashSet<byte[]> stringObjectOpenHashSet =
+            new ObjectOpenHashSet<byte[]>(dictIdBitmap.getCardinality());
         while (iterator.hasNext()) {
-          valueSet.add(dictionary.getStringValue(iterator.next()).hashCode());
+          stringObjectOpenHashSet.add(dictionary.getStringValue(iterator.next()).getBytes(Charsets.UTF_8));
         }
-        break;
+        return stringObjectOpenHashSet;
+
       case BYTES:
+        ObjectOpenHashSet<byte[]> bytesObjectOpenHashSet =
+            new ObjectOpenHashSet<byte[]>(dictIdBitmap.getCardinality());
+
         while (iterator.hasNext()) {
-          valueSet.add(Arrays.hashCode(dictionary.getBytesValue(iterator.next())));
+          bytesObjectOpenHashSet.add((dictionary.getBytesValue(iterator.next())));
         }
-        break;
+        return bytesObjectOpenHashSet;
       default:
         throw new IllegalStateException("Illegal data type for DISTINCT_COUNT aggregation function: " + valueType);
     }
-    return valueSet;
   }
 
   private static final class DictIdsWrapper {

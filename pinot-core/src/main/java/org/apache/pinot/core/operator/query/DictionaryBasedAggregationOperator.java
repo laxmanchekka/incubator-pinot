@@ -24,9 +24,9 @@ import it.unimi.dsi.fastutil.floats.FloatOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import java.nio.ByteBuffer;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.pinot.core.operator.BaseOperator;
@@ -110,15 +110,15 @@ public class DictionaryBasedAggregationOperator extends BaseOperator<Intermediat
               }
               break;
             case STRING:
-              set = new ObjectOpenHashSet<byte[]>(dictionarySize);
+              set = new ObjectOpenHashSet<ByteBuffer>(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(dictionary.getStringValue(dictId).getBytes(Charsets.UTF_8));
+                set.add(ByteBuffer.wrap(dictionary.getStringValue(dictId).getBytes(Charsets.UTF_8)));
               }
               break;
             case BYTES:
-              set = new ObjectOpenHashSet<byte[]>(dictionarySize);
+              set = new ObjectOpenHashSet<ByteBuffer>(dictionarySize);
               for (int dictId = 0; dictId < dictionarySize; dictId++) {
-                set.add(dictionary.getBytesValue(dictId));
+                set.add(ByteBuffer.wrap(dictionary.getBytesValue(dictId)));
               }
               break;
             default:

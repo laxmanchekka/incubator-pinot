@@ -24,6 +24,7 @@ import it.unimi.dsi.fastutil.floats.FloatOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import java.nio.ByteBuffer;
 import java.util.AbstractCollection;
 import java.util.Iterator;
 import java.util.Map;
@@ -107,13 +108,13 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case STRING:
         String[] stringValues = blockValSet.getStringValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(stringValues[i].getBytes(Charsets.UTF_8));
+          valueSet.add(ByteBuffer.wrap(stringValues[i].getBytes(Charsets.UTF_8)));
         }
         break;
       case BYTES:
         byte[][] bytesValues = blockValSet.getBytesValuesSV();
         for (int i = 0; i < length; i++) {
-          valueSet.add(bytesValues[i]);
+          valueSet.add(ByteBuffer.wrap(bytesValues[i]));
         }
         break;
       default:
@@ -172,7 +173,7 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case BYTES:
         byte[][] bytesValues = blockValSet.getBytesValuesSV();
         for (int i = 0; i < length; i++) {
-          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(bytesValues[i]);
+          getValueSet(groupByResultHolder, groupKeyArray[i], valueType).add(ByteBuffer.wrap(bytesValues[i]));
         }
         break;
       default:
@@ -225,13 +226,13 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case STRING:
         String[] stringValues = blockValSet.getStringValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], stringValues[i].getBytes(Charsets.UTF_8));
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], ByteBuffer.wrap(stringValues[i].getBytes(Charsets.UTF_8)));
         }
         break;
       case BYTES:
         byte[][] bytesValues = blockValSet.getBytesValuesSV();
         for (int i = 0; i < length; i++) {
-          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], bytesValues[i]);
+          setValueForGroupKeys(groupByResultHolder, valueType, groupKeysArray[i], ByteBuffer.wrap(bytesValues[i]));
         }
         break;
       default:
@@ -399,11 +400,8 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
       case DOUBLE:
         valueSet = new DoubleOpenHashSet();
         break;
-      case STRING:
-        valueSet = new ObjectOpenHashSet<byte[]>();
-        break;
       case BYTES:
-        valueSet = new ObjectOpenHashSet<byte[]>();
+        valueSet = new ObjectOpenHashSet<ByteBuffer>();
         break;
       default:
         throw new IllegalStateException("Illegal data type for DISTINCT_COUNT aggregation function: " + valueType);
@@ -479,7 +477,7 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
   }
 
   private static void setValueForGroupKeys(GroupByResultHolder groupByResultHolder, DataType valueType, int[] groupKeys,
-      byte[] value) {
+      ByteBuffer value) {
     for (int groupKey : groupKeys) {
       getValueSet(groupByResultHolder, groupKey, valueType).add(value);
     }
@@ -521,19 +519,19 @@ public class DistinctCountAggregationFunction extends BaseSingleInputAggregation
         }
         return doubleOpenHashSet;
       case STRING:
-        ObjectOpenHashSet<byte[]> stringObjectOpenHashSet =
-            new ObjectOpenHashSet<byte[]>(dictIdBitmap.getCardinality());
+        ObjectOpenHashSet<ByteBuffer> stringObjectOpenHashSet =
+            new ObjectOpenHashSet<>(dictIdBitmap.getCardinality());
         while (iterator.hasNext()) {
-          stringObjectOpenHashSet.add(dictionary.getStringValue(iterator.next()).getBytes(Charsets.UTF_8));
+          stringObjectOpenHashSet.add(ByteBuffer.wrap(dictionary.getStringValue(iterator.next()).getBytes(Charsets.UTF_8)));
         }
         return stringObjectOpenHashSet;
 
       case BYTES:
-        ObjectOpenHashSet<byte[]> bytesObjectOpenHashSet =
-            new ObjectOpenHashSet<byte[]>(dictIdBitmap.getCardinality());
+        ObjectOpenHashSet<ByteBuffer> bytesObjectOpenHashSet =
+            new ObjectOpenHashSet<>(dictIdBitmap.getCardinality());
 
         while (iterator.hasNext()) {
-          bytesObjectOpenHashSet.add((dictionary.getBytesValue(iterator.next())));
+          bytesObjectOpenHashSet.add(ByteBuffer.wrap(dictionary.getBytesValue(iterator.next())));
         }
         return bytesObjectOpenHashSet;
       default:

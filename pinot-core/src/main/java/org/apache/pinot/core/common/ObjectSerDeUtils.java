@@ -19,7 +19,6 @@
 package org.apache.pinot.core.common;
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLog;
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Longs;
 import com.tdunning.math.stats.MergingDigest;
 import com.tdunning.math.stats.TDigest;
@@ -43,7 +42,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -514,7 +512,7 @@ public class ObjectSerDeUtils {
     @Override
     public byte[] serialize(FloatSet floatSet) {
       int size = floatSet.size();
-      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
+      byte[] bytes = new byte[Integer.BYTES + size * Float.BYTES];
       ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
       byteBuffer.putInt(size);
       FloatIterator iterator = floatSet.iterator();
@@ -534,7 +532,7 @@ public class ObjectSerDeUtils {
       int size = byteBuffer.getInt();
       FloatSet floatSet = new FloatOpenHashSet(size);
       for (int i = 0; i < size; i++) {
-        floatSet.add(byteBuffer.getLong());
+        floatSet.add(byteBuffer.getFloat());
       }
       return floatSet;
     }
@@ -545,7 +543,7 @@ public class ObjectSerDeUtils {
     @Override
     public byte[] serialize(DoubleSet doubleSet) {
       int size = doubleSet.size();
-      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
+      byte[] bytes = new byte[Integer.BYTES + size * Double.BYTES];
       ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
       byteBuffer.putInt(size);
       DoubleIterator iterator = doubleSet.iterator();
@@ -571,23 +569,20 @@ public class ObjectSerDeUtils {
     }
   };
 
-  public static final ObjectSerDe<ObjectSet<byte[]>> BYTES_SET_SER_DE = new ObjectSerDe<ObjectSet<byte[]>>() {
+  public static final ObjectSerDe<ObjectSet<ByteBuffer>> BYTES_SET_SER_DE = new ObjectSerDe<ObjectSet<ByteBuffer>>() {
 
     @Override
     public byte[] serialize(ObjectSet bytesSet) {
       int size = bytesSet.size();
-
       ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
       DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
-
       try {
-
         dataOutputStream.writeInt(size);
-        ObjectIterator<byte[]> iterator = bytesSet.iterator();
+        ObjectIterator<ByteBuffer> iterator = bytesSet.iterator();
         while (iterator.hasNext()) {
-          byte[] val = iterator.next();
-          dataOutputStream.writeInt(val.length);
-          dataOutputStream.write(val);
+          ByteBuffer val = iterator.next();
+          dataOutputStream.writeInt(val.array().length);
+          dataOutputStream.write(val.array());
         }
       } catch (Exception e) {
         throw new RuntimeException("Caught exception while serializing bytesSet", e);
@@ -596,19 +591,19 @@ public class ObjectSerDeUtils {
     }
 
     @Override
-    public ObjectSet<byte[]> deserialize(byte[] bytes) {
+    public ObjectSet<ByteBuffer> deserialize(byte[] bytes) {
       return deserialize(ByteBuffer.wrap(bytes));
     }
 
     @Override
-    public ObjectSet<byte[]> deserialize(ByteBuffer byteBuffer) {
+    public ObjectSet<ByteBuffer> deserialize(ByteBuffer byteBuffer) {
       int size = byteBuffer.getInt();
-      ObjectOpenHashSet<byte[]> bytesSet = new ObjectOpenHashSet<>(size);
+      ObjectOpenHashSet<ByteBuffer> bytesSet = new ObjectOpenHashSet<>(size);
       for (int i = 0; i < size; i++) {
         int length = byteBuffer.getInt();
         byte[] val = new byte[length];
         byteBuffer.get(val);
-        bytesSet.add(val);
+        bytesSet.add(ByteBuffer.wrap(val));
       }
       return bytesSet;
     }

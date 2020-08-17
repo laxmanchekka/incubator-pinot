@@ -576,16 +576,23 @@ public class ObjectSerDeUtils {
     @Override
     public byte[] serialize(ObjectSet bytesSet) {
       int size = bytesSet.size();
-      byte[] bytes = new byte[Integer.BYTES + size * Long.BYTES];
-      ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-      byteBuffer.putInt(size);
-      ObjectIterator<byte[]> iterator = bytesSet.iterator();
-      while (iterator.hasNext()) {
-        byte[] val = iterator.next();
-        byteBuffer.putInt(val.length);
-        byteBuffer.put(val);
+
+      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+      DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
+
+      try {
+
+        dataOutputStream.writeInt(size);
+        ObjectIterator<byte[]> iterator = bytesSet.iterator();
+        while (iterator.hasNext()) {
+          byte[] val = iterator.next();
+          dataOutputStream.writeInt(val.length);
+          dataOutputStream.write(val);
+        }
+      } catch (Exception e) {
+        throw new RuntimeException("Caught exception while serializing bytesSet", e);
       }
-      return bytes;
+      return byteArrayOutputStream.toByteArray();
     }
 
     @Override

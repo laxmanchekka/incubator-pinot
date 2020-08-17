@@ -61,8 +61,7 @@ public enum AggregationFunctionType {
   PERCENTILEMV("percentileMV"),
   PERCENTILEESTMV("percentileEstMV"),
   PERCENTILETDIGESTMV("percentileTDigestMV"),
-  DISTINCT("distinct"),
-  DISTINCTRAWBLOOMFILTER("distinctRawBloomFilter");
+  DISTINCT("distinct");
 
   private final String _name;
 

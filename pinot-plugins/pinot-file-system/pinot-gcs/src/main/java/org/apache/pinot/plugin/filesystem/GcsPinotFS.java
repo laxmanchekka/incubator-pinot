@@ -33,6 +33,7 @@ import org.apache.pinot.spi.filesystem.PinotFS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -324,6 +325,7 @@ public class GcsPinotFS  extends PinotFS {
   @Override
   public void copyToLocalFile(URI srcUri, File dstFile) throws Exception {
     LOGGER.info("Copy {} to local {}", srcUri, dstFile.getAbsolutePath());
+    FileUtils.forceMkdir(dstFile.getParentFile());
     Blob blob = getBlob(srcUri);
     checkState(existsBlob(blob), "File '%s' does not exists", srcUri);
     blob.downloadTo(dstFile.toPath());

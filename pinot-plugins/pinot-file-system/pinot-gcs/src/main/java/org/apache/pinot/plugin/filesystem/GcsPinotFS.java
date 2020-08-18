@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.apache.commons.io.FileUtils;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 import static joptsimple.internal.Strings.isNullOrEmpty;
@@ -324,6 +325,7 @@ public class GcsPinotFS  extends PinotFS {
   @Override
   public void copyToLocalFile(URI srcUri, File dstFile) throws Exception {
     LOGGER.info("Copy {} to local {}", srcUri, dstFile.getAbsolutePath());
+    FileUtils.forceMkdir(dstFile.getParentFile());
     Blob blob = getBlob(srcUri);
     checkState(existsBlob(blob), "File '%s' does not exists", srcUri);
     blob.downloadTo(dstFile.toPath());
